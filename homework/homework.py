@@ -115,10 +115,12 @@ def load_data(train_path, test_path):
     df_train = pd.read_csv(train_path, index_col=False, compression="zip")
     df_test = pd.read_csv(test_path, index_col=False, compression="zip")
 
+    print("Datos cargados exitosamente")
+
     return df_train, df_test
 
 
-def preprocess_data(df):
+def preprocess_data(df, set_name):
     # Renombrar columna
     df = df.rename(columns={"default payment next month": "default"})
 
@@ -129,7 +131,9 @@ def preprocess_data(df):
     df = df.dropna()
 
     # Agrupar valores de EDUCATION > 4
-    df["EDUCATION"] = df["EDUCATION"].apply(lambda x: x if x <= 4 else 4)
+    df["EDUCATION"] = df["EDUCATION"].apply(lambda x: x if x < 4 else 4)
+
+    print(f"Preprocesamiento de datos {set_name} completado")
 
     return df
 
@@ -137,6 +141,8 @@ def preprocess_data(df):
 def split_features_target(df, target_name):
     X = df.drop(columns=[target_name])
     y = df[target_name]
+
+    print("División de características y target completada")
 
     return X, y
 
@@ -161,15 +167,17 @@ def pipeline_definition():
         ]
     )
 
+    print("Definición del pipeline completada")
+
     return pipeline
 
 
 def hyperparameter_optimization(pipeline, X_train, y_train):
     param_grid = {
-        "classifier__n_estimators": [100, 200],
-        "classifier__max_depth": [10, 20, None],
-        "classifier__min_samples_split": [5, 10],
-        "classifier__min_samples_leaf": [2, 4],
+        "classifier__n_estimators": [100],
+        "classifier__max_depth": [None],
+        "classifier__min_samples_split": [10],
+        "classifier__min_samples_leaf": [4],
         "classifier__max_features": [None],
     }
 
@@ -182,6 +190,8 @@ def hyperparameter_optimization(pipeline, X_train, y_train):
         n_jobs=-1,
     )
     grid_search.fit(X_train, y_train)
+
+    print("Optimización de hiperparámetros completada")
     
     return grid_search
 
@@ -223,6 +233,8 @@ def calculate_metrics(model, X, y, dataset_type):
         "true_1": {"predicted_0": int(cm[1, 0]), "predicted_1": int(cm[1, 1])},
     }
 
+    print(f"Cálculo de métricas completado para el conjunto de {dataset_type}")
+
     return metrics, cm_dict
 
 
@@ -240,8 +252,8 @@ def save_metrics(metrics, metrics_path):
 def main():
     df_train, df_test = load_data("files/input/train_data.csv.zip", "files/input/test_data.csv.zip")
 
-    df_train = preprocess_data(df_train)
-    df_test = preprocess_data(df_test)
+    df_train = preprocess_data(df_train, "train")
+    df_test = preprocess_data(df_test, "test")
 
     X_train, y_train = split_features_target(df_train, "default")
     X_test, y_test = split_features_target(df_test, "default")
